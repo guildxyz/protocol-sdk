@@ -6,6 +6,9 @@ import {
   ServerToClientMsgRaw,
 } from "./types";
 
+const DEFAULT_PROTOCOL_WS_URL =
+  "wss://api.protocol.guild-api.xyz/api/v1/events/ws";
+
 export class EventsClient {
   private protocolWsUrl: string;
   private subscriptionId: string;
@@ -14,7 +17,7 @@ export class EventsClient {
   private handler: (data: ServerToClientMsg) => void;
 
   constructor(params: EventsClientParams) {
-    this.protocolWsUrl = params.protocolWsURL;
+    this.protocolWsUrl = params.customProtocolWsUrl ?? DEFAULT_PROTOCOL_WS_URL;
     this.subscriptionId = params.subscriptionID;
     this.subscriptionKey = params.subscriptionKey;
     this.handler = params.handler;
@@ -22,10 +25,6 @@ export class EventsClient {
 
   public start() {
     this.ws = new WebSocket(this.protocolWsUrl);
-    this.ws.on("open", () => {
-      this.sendInitialMessage();
-      console.log("ws opened");
-    });
     this.ws.on("close", (_: WebSocket, code: number, reason: Buffer) => {
       console.log("ws closed", code, reason);
     });
@@ -59,7 +58,7 @@ export class EventsClient {
 }
 
 export type EventsClientParams = {
-  protocolWsURL: string;
+  customProtocolWsUrl?: string;
   subscriptionID: string;
   subscriptionKey: string;
   handler: (data: ServerToClientMsg) => void;
