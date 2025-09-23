@@ -38,6 +38,7 @@ export class Syncer {
           } else {
             dpError = DataPointError.defaultFromError(error as Error);
           }
+          console.log("Syncer: error", dpError)
           if (!dpError.retryable || data.attempt == data.maxAttempts) {
             await this.updateDataPointWithError(
               event.data.integrationId,
