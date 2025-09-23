@@ -30,10 +30,20 @@ export class EventsClient {
     });
     this.ws.on("message", (data, isBinary) => {
       if (!isBinary) {
-        const msgString = data.toString();
-        const msg: ServerToClientMsgRaw = JSON.parse(msgString);
-        const parsed = new ServerToClientMsg(this, msg);
-        this.handler(parsed);
+        let parsed: ServerToClientMsg;
+        try {
+          const msgString = data.toString();
+          const msg: ServerToClientMsgRaw = JSON.parse(msgString);
+          parsed = new ServerToClientMsg(this, msg);
+        } catch (error) {
+          console.log("EventsClient on message prepare error", error);
+          return;
+        }
+        try {
+          this.handler(parsed);
+        } catch (error) {
+          console.log("EventsClient handler error", error);
+        }
       }
     });
     this.ws.on("open", () => {

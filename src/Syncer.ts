@@ -2,17 +2,16 @@ import { DataPointError } from "./DataPointError";
 import { EventsClient } from "./EventsClient";
 import { DataPointEvent } from "./types";
 
-export type SyncerParams = {
-  subscriptionID: string;
-  subscriptionKey: string;
-  dataPointHandler: (data: DataPointEvent) => Promise<void>;
-  customProtocolWsUrl?: string;
-};
+const DEFAULT_PROTOCOL_URL = "https://api.protocol.guild-api.xyz";
 
 export class Syncer {
   private eventsClient: EventsClient;
+  private protocolUrl: string;
+  private protocolAdminKey: string;
 
   constructor(params: SyncerParams) {
+    this.protocolUrl = params.customProtocolUrl ?? DEFAULT_PROTOCOL_URL;
+    this.protocolAdminKey = params.protocolAdminKey;
     this.eventsClient = new EventsClient({
       customProtocolWsUrl: params.customProtocolWsUrl,
       subscriptionID: params.subscriptionID,
@@ -37,9 +36,17 @@ export class Syncer {
             dpError = DataPointError.defaultFromError(error as Error);
           }
           if (!dpError.retryable || data.attempt == data.maxAttempts) {
+            await this.updateDataPointWithError(
+              data.event.integration_id,
+              data.event.configuration_id,
+              data.event.account_id,
+              data.event.identity_type,
+              dpError,
+            );
             data.term();
+          } else {
+            data.nak();
           }
-          data.nak();
         }
       },
     });
@@ -52,4 +59,60 @@ export class Syncer {
   public stop() {
     this.eventsClient.stop();
   }
+
+  private async updateDataPointWithError(
+    integrationId: string,
+    configurationId: string,
+    accountId: string,
+    identityType: string,
+    error: DataPointError,
+  ) {
+    const res = await fetch(
+      `${this.protocolUrl}/api/v1/integrations/${integrationId}/data-points`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `API_KEY ${this.protocolAdminKey}`,
+        },
+        body: JSON.stringify({
+          configuration: { id: configurationId },
+          identity: {
+            identity_id: accountId,
+            identity_type: identityType,
+          },
+          integration_id: integrationId,
+          ops: [
+            {
+              op: "set",
+              field: "error_type",
+              value: error.type,
+            },
+            {
+              op: "set",
+              field: "error_message",
+              value: error.msg,
+            },
+          ],
+        }),
+      },
+    );
+
+    if (res.status >= 500) {
+      console.log(
+        "updateDataPointWithError: 5XX status code",
+        res.status,
+        res.text(),
+      );
+    }
+  }
 }
+
+export type SyncerParams = {
+  subscriptionID: string;
+  subscriptionKey: string;
+  dataPointHandler: (data: DataPointEvent) => Promise<void>;
+  customProtocolWsUrl?: string;
+  customProtocolUrl?: string;
+  protocolAdminKey: string;
+};

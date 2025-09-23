@@ -5,8 +5,11 @@ const syncer = new Syncer({
   subscriptionID: "test",
   subscriptionKey: "test",
   dataPointHandler: async (msg) => {
-    console.log(msg);
+    // update the data point
+    // throw DataPointError if something goes wrong
   },
+  customProtocolUrl: "http://localhost:8080",
+  protocolAdminKey: "70ad573f-ca5d-49e4-be60-01241e170157",
 });
 
 syncer.start();
