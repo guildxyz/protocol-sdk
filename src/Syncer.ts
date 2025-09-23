@@ -18,9 +18,11 @@ export class Syncer {
       subscriptionID: params.subscriptionID,
       subscriptionKey: params.subscriptionKey,
       handler: (data) => {
+        // skip in case the subscription is misconfigured
         if (
-          data.event.kind !== "data_point_create" &&
-          data.event.kind !== "data_point_update"
+          (data.event.kind !== "data_point_create" &&
+            data.event.kind !== "data_point_update") ||
+          (data.event as DataPointEvent).data.status === "synced"
         ) {
           return;
         }
@@ -32,7 +34,7 @@ export class Syncer {
           if (error instanceof DataPointError) {
             dpError = error;
           } else {
-            dpError = DataPointError.defaultFromError(error);
+            dpError = DataPointError.defaultFromError(error as Error);
           }
           if (!dpError.retryable || data.attempt == data.maxAttempts) {
             data.term();

@@ -36,6 +36,10 @@ export class EventsClient {
         this.handler(parsed);
       }
     });
+    this.ws.on("open", () => {
+      this.sendInitialMessage();
+      console.log("ws opened");
+    });
   }
 
   public stop() {
