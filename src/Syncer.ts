@@ -5,7 +5,7 @@ import { DataPointEvent } from "./types";
 export type SyncerParams = {
   subscriptionID: string;
   subscriptionKey: string;
-  dataPointHandler: (data: DataPointEvent) => void;
+  dataPointHandler: (data: DataPointEvent) => Promise<void>;
   customProtocolWsUrl?: string;
 };
 
@@ -17,7 +17,7 @@ export class Syncer {
       customProtocolWsUrl: params.customProtocolWsUrl,
       subscriptionID: params.subscriptionID,
       subscriptionKey: params.subscriptionKey,
-      handler: (data) => {
+      handler: async (data) => {
         // skip in case the subscription is misconfigured
         if (
           (data.event.kind !== "data_point_create" &&
@@ -27,7 +27,7 @@ export class Syncer {
           return;
         }
         try {
-          params.dataPointHandler(data.event);
+          await params.dataPointHandler(data.event);
           data.ack();
         } catch (error) {
           let dpError: DataPointError;

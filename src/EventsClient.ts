@@ -14,7 +14,7 @@ export class EventsClient {
   private subscriptionId: string;
   private subscriptionKey: string;
   private ws?: WebSocket;
-  private handler: (data: ServerToClientMsg) => void;
+  private handler: (data: ServerToClientMsg) => Promise<void>;
 
   constructor(params: EventsClientParams) {
     this.protocolWsUrl = params.customProtocolWsUrl ?? DEFAULT_PROTOCOL_WS_URL;
@@ -65,5 +65,5 @@ export type EventsClientParams = {
   customProtocolWsUrl?: string;
   subscriptionID: string;
   subscriptionKey: string;
-  handler: (data: ServerToClientMsg) => void;
+  handler: (data: ServerToClientMsg) => Promise<void>;
 };

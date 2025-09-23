@@ -4,7 +4,7 @@ const syncer = new Syncer({
   customProtocolWsUrl: "ws://localhost:8081/api/v1/events/ws",
   subscriptionID: "test",
   subscriptionKey: "test",
-  dataPointHandler: (msg) => {
+  dataPointHandler: async (msg) => {
     console.log(msg);
   },
 });
