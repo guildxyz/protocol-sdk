@@ -32,13 +32,13 @@ export class Syncer {
           await params.dataPointHandler(event);
           data.ack();
         } catch (error) {
+          console.log("Syncer: error", error)
           let dpError: DataPointError;
           if (error instanceof DataPointError) {
             dpError = error;
           } else {
             dpError = DataPointError.defaultFromError(error as Error);
           }
-          console.log("Syncer: error", dpError)
           if (!dpError.retryable || data.attempt == data.maxAttempts) {
             await this.updateDataPointWithError(
               event.data.integrationId,
