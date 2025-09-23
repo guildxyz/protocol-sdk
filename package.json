@@ -3,7 +3,8 @@
   "version": "0.0.1",
   "main": "build/src/index.js",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "prepare": "npm run build"
   },
   "devDependencies": {
     "@types/ws": "^8.18.1",
