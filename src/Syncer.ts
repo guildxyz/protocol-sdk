@@ -19,14 +19,17 @@ export class Syncer {
       handler: async (data) => {
         // skip in case the subscription is misconfigured
         if (
-          (data.event.kind !== "data_point_create" &&
-            data.event.kind !== "data_point_update") ||
-          (data.event as DataPointEvent).data.status === "synced"
+          data.event.kind !== "data_point_create" &&
+          data.event.kind !== "data_point_update"
         ) {
           return;
         }
+        const event = data.event as DataPointEvent;
+        if (event.data.status === "synced") {
+          return;
+        }
         try {
-          await params.dataPointHandler(data.event);
+          await params.dataPointHandler(event);
           data.ack();
         } catch (error) {
           let dpError: DataPointError;
@@ -37,10 +40,10 @@ export class Syncer {
           }
           if (!dpError.retryable || data.attempt == data.maxAttempts) {
             await this.updateDataPointWithError(
-              data.event.integration_id,
-              data.event.configuration_id,
-              data.event.account_id,
-              data.event.identity_type,
+              event.data.integrationId,
+              event.data.configurationId,
+              event.data.accountId,
+              event.data.identityType,
               dpError,
             );
             data.term();
@@ -98,11 +101,11 @@ export class Syncer {
       },
     );
 
-    if (res.status >= 500) {
+    if (res.status >= 400) {
       console.log(
-        "updateDataPointWithError: 5XX status code",
+        "updateDataPointWithError error",
         res.status,
-        res.text(),
+        await res.text(),
       );
     }
   }
