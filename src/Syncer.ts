@@ -10,10 +10,10 @@ export class Syncer {
   private protocolAdminKey: string;
 
   constructor(params: SyncerParams) {
-    this.protocolUrl = params.customProtocolUrl ?? DEFAULT_PROTOCOL_URL;
+    this.protocolUrl = params.protocolUrl ?? DEFAULT_PROTOCOL_URL;
     this.protocolAdminKey = params.protocolAdminKey;
     this.eventsClient = new EventsClient({
-      customProtocolWsUrl: params.customProtocolWsUrl,
+      protocolWsUrl: params.protocolWsUrl,
       subscriptionID: params.subscriptionID,
       subscriptionKey: params.subscriptionKey,
       handler: async (data) => {
@@ -32,7 +32,7 @@ export class Syncer {
           await params.dataPointHandler(event);
           data.ack();
         } catch (error) {
-          console.log("Syncer: error", error)
+          console.log("Syncer: error", error);
           let dpError: DataPointError;
           if (error instanceof DataPointError) {
             dpError = error;
@@ -116,7 +116,7 @@ export type SyncerParams = {
   subscriptionID: string;
   subscriptionKey: string;
   dataPointHandler: (data: DataPointEvent) => Promise<void>;
-  customProtocolWsUrl?: string;
-  customProtocolUrl?: string;
+  protocolWsUrl?: string;
+  protocolUrl?: string;
   protocolAdminKey: string;
 };
