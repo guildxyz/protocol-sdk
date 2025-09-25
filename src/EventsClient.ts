@@ -1,4 +1,4 @@
-import WebSocket from "ws";
+import { ReconnectingWS } from "./ReconnectingWebSocket";
 import {
   ClientToServerMsg,
   clientToServerMsgToRaw,
@@ -13,7 +13,7 @@ export class EventsClient {
   private protocolWsUrl: string;
   private subscriptionId: string;
   private subscriptionKey: string;
-  private ws?: WebSocket;
+  private ws?: ReconnectingWS;
   private handler: (data: ServerToClientMsg) => Promise<void>;
 
   constructor(params: EventsClientParams) {
@@ -24,12 +24,13 @@ export class EventsClient {
   }
 
   public start() {
-    this.ws = new WebSocket(this.protocolWsUrl);
-    this.ws.on("close", (_: WebSocket, code: number, reason: Buffer) => {
-      console.log("ws closed", code, reason);
-    });
-    this.ws.on("message", (data, isBinary) => {
-      if (!isBinary) {
+    this.ws = new ReconnectingWS({
+      url: this.protocolWsUrl,
+      onOpen: () => {
+        this.sendInitialMessage();
+        console.log("ws opened");
+      },
+      onMessage: (data) => {
         let parsed: ServerToClientMsg;
         try {
           const msgString = data.toString();
@@ -45,10 +46,6 @@ export class EventsClient {
           console.log("EventsClient handler error", error);
         }
       }
-    });
-    this.ws.on("open", () => {
-      this.sendInitialMessage();
-      console.log("ws opened");
     });
   }
 
