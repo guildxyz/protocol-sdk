@@ -102,6 +102,9 @@ export type GroupAccessEvent = {
       ruleId: string;
       dataPoints: DataPoint[];
     }[];
+    error?: {
+      message: string
+    }
   };
 };
 
@@ -199,6 +202,7 @@ function parseGroupAccessEvent(msg: GroupAccessEventRaw): GroupAccessEvent {
         ruleId: ra.rule_id,
         dataPoints: ra.data_points.map((dp) => parseDataPoint(dp)),
       })),
+      error: msg.data.error
     },
   };
 }
