@@ -1,6 +1,11 @@
 import { DataPointError } from "./DataPointError";
 import { EventsClient } from "./EventsClient";
-import { Configuration, DataPointEvent } from "./types";
+import {
+  Configuration,
+  Data,
+  DataPointEvent,
+  DataPointEventWithMethods,
+} from "./types";
 import { createClient } from "redis";
 
 const DEFAULT_PROTOCOL_URL = "https://api.protocol.guild-api.xyz";
@@ -22,23 +27,38 @@ export class Syncer {
       protocolWsUrl: params.protocolWsUrl,
       subscriptionID: params.subscriptionID,
       subscriptionKey: params.subscriptionKey,
-      handler: async (data) => {
+      handler: async (msg) => {
         // skip in case the subscription is misconfigured
         if (
-          data.event.kind !== "data_point_create" &&
-          data.event.kind !== "data_point_update"
+          msg.event.kind !== "data_point_create" &&
+          msg.event.kind !== "data_point_update"
         ) {
-          data.ack();
+          msg.ack();
           return;
         }
-        const event = data.event as DataPointEvent;
+        const event = msg.event as DataPointEvent;
         if (event.data.status === "synced") {
-          data.ack();
+          msg.ack();
           return;
         }
+        const eventWithMethods: DataPointEventWithMethods = {
+          ...event,
+          getConfiguration: async () => {
+            return this.getConfiguration(event.data.configurationId);
+          },
+          updateDataPoint: async (data) => {
+            await this.updateDataPoint(
+              event.data.integrationId,
+              event.data.configurationId,
+              event.data.identityType,
+              event.data.accountId,
+              data,
+            );
+          },
+        };
         try {
-          await params.dataPointHandler(event);
-          data.ack();
+          await params.dataPointHandler(eventWithMethods);
+          msg.ack();
         } catch (error) {
           console.log("Syncer: error", error);
           let dpError: DataPointError;
@@ -47,7 +67,7 @@ export class Syncer {
           } else {
             dpError = DataPointError.defaultFromError(error as Error);
           }
-          if (!dpError.retryable || data.attempt == data.maxAttempts) {
+          if (!dpError.retryable || msg.attempt == msg.maxAttempts) {
             await this.updateDataPointWithError(
               event.data.integrationId,
               event.data.configurationId,
@@ -55,9 +75,9 @@ export class Syncer {
               event.data.accountId,
               dpError,
             );
-            data.term();
+            msg.term();
           } else {
-            data.nak();
+            msg.nak();
           }
         }
       },
@@ -184,12 +204,10 @@ export class Syncer {
 export type SyncerParams = {
   subscriptionID: string;
   subscriptionKey: string;
-  dataPointHandler: (data: DataPointEvent) => Promise<void>;
+  dataPointHandler: (data: DataPointEventWithMethods) => Promise<void>;
   protocolWsUrl?: string;
   protocolUrl?: string;
   protocolAdminKey: string;
   redisClient?: ReturnType<typeof createClient>;
   cachePrefix?: string;
 };
-
-export type Data = Record<string, any>;

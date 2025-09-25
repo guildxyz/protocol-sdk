@@ -84,6 +84,15 @@ export type DataPointEvent = {
   data: DataPoint;
 };
 
+export type Data = Record<string, any>;
+
+export type DataPointEventWithMethods = DataPointEvent & {
+  getConfiguration: <ConfigurationData>() => Promise<
+    Configuration<ConfigurationData>
+  >;
+  updateDataPoint: (data: Data) => Promise<void>;
+};
+
 export type GroupAccessEvent = {
   kind: "group_access_update";
   priority: 1 | 2;
