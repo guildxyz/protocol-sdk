@@ -54,6 +54,9 @@ type GroupAccessEventRaw = {
       rule_id: string;
       data_points: DataPointRaw[];
     }[];
+    error?: {
+      message: string
+    }
   };
 };
 
