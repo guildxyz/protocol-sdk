@@ -1,7 +1,7 @@
 import { type BackoffOptions, backOff } from "exponential-backoff";
 
 type MessageListener = (this: WebSocket, ev: MessageEvent<any>) => any;
-type OpenListener = () => any;
+type OpenListener = (ev: Event) => any;
 
 export class ReconnectingWS {
   private url: string;
@@ -39,10 +39,9 @@ export class ReconnectingWS {
   }
 
   private async connectToWs() {
-
-    this.ws = await backOff(
+    await backOff(
       () =>
-        new Promise<WebSocket>((resolve, reject) => {
+        new Promise<void>((resolve, reject) => {
           const ws = new WebSocket(this.url);
           ws.addEventListener("error", (error) => {
             console.log("ReconnectingWS: got error, might recover", { error });
@@ -50,7 +49,9 @@ export class ReconnectingWS {
           });
           ws.addEventListener("open", (event) => {
             console.log("ReconnectingWS: connected");
-            resolve(ws);
+            this.ws = ws
+            this.onOpen?.(event)
+            resolve();
           });
 
           if (this.onMessage) {
@@ -58,10 +59,7 @@ export class ReconnectingWS {
           }
         }),
       this.backoffOptions,
-    ).then((ws) => {
-      this.onOpen?.()
-      return ws
-    }).catch((error) => {
+    ).catch((error) => {
       console.error("ReconnectingWS: failed to reconnect, giving up", { error });
       throw new Error("WS failed to reconnect");
     });
