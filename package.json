@@ -1,0 +1,16 @@
+{
+  "name": "protocol-sdk",
+  "version": "0.0.1",
+  "main": "build/src/index.js",
+  "scripts": {
+    "build": "tsc",
+    "prepare": "npm run build"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.18.1",
+    "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "ws": "^8.18.3"
+  }
+}
