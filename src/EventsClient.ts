@@ -33,7 +33,7 @@ export class EventsClient {
       onMessage: (data) => {
         let parsed: ServerToClientMsg;
         try {
-          const msgString = data.toString();
+          const msgString = data.data.toString();
           const msg: ServerToClientMsgRaw = JSON.parse(msgString);
           parsed = new ServerToClientMsg(this, msg);
         } catch (error) {
