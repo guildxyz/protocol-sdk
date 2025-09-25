@@ -54,6 +54,9 @@ type GroupAccessEventRaw = {
       rule_id: string;
       data_points: DataPointRaw[];
     }[];
+    error?: {
+      message: string
+    }
   };
 };
 
@@ -99,6 +102,9 @@ export type GroupAccessEvent = {
       ruleId: string;
       dataPoints: DataPoint[];
     }[];
+    error?: {
+      message: string
+    }
   };
 };
 
@@ -191,11 +197,12 @@ function parseGroupAccessEvent(msg: GroupAccessEventRaw): GroupAccessEvent {
         createdAt: msg.data.group_access.created_at,
         updatedAt: msg.data.group_access.updated_at,
       },
-      ruleAccesses: msg.data.rule_accesses.map((ra) => ({
+      ruleAccesses: msg.data.rule_accesses?.map((ra) => ({
         ruleAccess: ra.rule_access,
         ruleId: ra.rule_id,
         dataPoints: ra.data_points.map((dp) => parseDataPoint(dp)),
       })),
+      error: msg.data.error
     },
   };
 }
