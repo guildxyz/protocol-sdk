@@ -23,7 +23,7 @@ export class EventsClient {
     this.handler = params.handler;
   }
 
-  public start() {
+  public async start() {
     this.ws = new ReconnectingWS({
       url: this.protocolWsUrl,
       onOpen: () => {
@@ -47,6 +47,7 @@ export class EventsClient {
         }
       }
     });
+    await this.ws.connect()
   }
 
   public stop() {
