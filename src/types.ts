@@ -55,8 +55,8 @@ type GroupAccessEventRaw = {
       data_points: DataPointRaw[];
     }[];
     error?: {
-      message: string
-    }
+      message: string;
+    };
   };
 };
 
@@ -103,8 +103,8 @@ export type GroupAccessEvent = {
       dataPoints: DataPoint[];
     }[];
     error?: {
-      message: string
-    }
+      message: string;
+    };
   };
 };
 
@@ -202,7 +202,7 @@ function parseGroupAccessEvent(msg: GroupAccessEventRaw): GroupAccessEvent {
         ruleId: ra.rule_id,
         dataPoints: ra.data_points.map((dp) => parseDataPoint(dp)),
       })),
-      error: msg.data.error
+      error: msg.data.error,
     },
   };
 }
@@ -228,3 +228,10 @@ export function clientToServerMsgToRaw(
     delay_ms: msg.delayMs,
   };
 }
+
+export type Configuration<Data> = {
+  id: string;
+  integrationId: string;
+  data: Data;
+  createdAt: Date;
+};

@@ -5,7 +5,18 @@ const syncer = new Syncer({
   subscriptionID: "test",
   subscriptionKey: "test",
   dataPointHandler: async (msg) => {
+    // get and use configuration to evaluate data point
+    const config = await syncer.getConfiguration(msg.data.configurationId);
     // update the data point
+    await syncer.updateDataPoint(
+      "MY_INTEGRATION",
+      msg.data.configurationId,
+      msg.data.identityType,
+      msg.data.accountId,
+      {
+        value: 5,
+      },
+    );
     // throw DataPointError if something goes wrong
   },
   protocolUrl: "http://localhost:8080",

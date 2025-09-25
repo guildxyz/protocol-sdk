@@ -1,17 +1,23 @@
 import { DataPointError } from "./DataPointError";
 import { EventsClient } from "./EventsClient";
-import { DataPointEvent } from "./types";
+import { Configuration, DataPointEvent } from "./types";
+import { createClient } from "redis";
 
 const DEFAULT_PROTOCOL_URL = "https://api.protocol.guild-api.xyz";
+const CONFIGURATION_CACHE_EX = 60 * 60; // 1 hour
 
 export class Syncer {
   private eventsClient: EventsClient;
   private protocolUrl: string;
   private protocolAdminKey: string;
+  private redisClient?: ReturnType<typeof createClient>;
+  private cachePrefix?: string;
 
   constructor(params: SyncerParams) {
     this.protocolUrl = params.protocolUrl ?? DEFAULT_PROTOCOL_URL;
     this.protocolAdminKey = params.protocolAdminKey;
+    this.redisClient = params.redisClient;
+    this.cachePrefix = params.cachePrefix;
     this.eventsClient = new EventsClient({
       protocolWsUrl: params.protocolWsUrl,
       subscriptionID: params.subscriptionID,
@@ -22,10 +28,12 @@ export class Syncer {
           data.event.kind !== "data_point_create" &&
           data.event.kind !== "data_point_update"
         ) {
+          data.ack();
           return;
         }
         const event = data.event as DataPointEvent;
         if (event.data.status === "synced") {
+          data.ack();
           return;
         }
         try {
@@ -43,8 +51,8 @@ export class Syncer {
             await this.updateDataPointWithError(
               event.data.integrationId,
               event.data.configurationId,
-              event.data.accountId,
               event.data.identityType,
+              event.data.accountId,
               dpError,
             );
             data.term();
@@ -64,13 +72,63 @@ export class Syncer {
     this.eventsClient.stop();
   }
 
-  private async updateDataPointWithError(
+  public async getConfiguration<ConfigurationData>(
+    configurationId: string,
+  ): Promise<Configuration<ConfigurationData>> {
+    if (!this.redisClient) {
+      return this.getConfigurationFromApi(configurationId);
+    }
+
+    const redisKey = `${this.cachePrefix ? this.cachePrefix + ":" : ""}configuration:${configurationId}`;
+
+    const fromCache = await this.redisClient.get(redisKey);
+    if (fromCache) {
+      return JSON.parse(fromCache);
+    }
+
+    const fromApi =
+      await this.getConfigurationFromApi<ConfigurationData>(configurationId);
+    await this.redisClient.set(redisKey, JSON.stringify(fromApi), {
+      EX: CONFIGURATION_CACHE_EX,
+    });
+
+    return fromApi;
+  }
+
+  private async getConfigurationFromApi<ConfigurationData>(
+    configurationId: string,
+  ): Promise<Configuration<ConfigurationData>> {
+    const res = await fetch(
+      `${this.protocolUrl}/api/v1/configurations/${configurationId}`,
+      {
+        headers: {
+          Authorization: `API_KEY ${this.protocolAdminKey}`,
+        },
+      },
+    );
+    if (res.status !== 200) {
+      throw new Error(
+        `Failed to fetch configuration: ${res.status} ${await res.text()}`,
+      );
+    }
+    return await res.json();
+  }
+
+  public async updateDataPoint(
     integrationId: string,
     configurationId: string,
-    accountId: string,
     identityType: string,
-    error: DataPointError,
+    accountId: string,
+    data: Data,
   ) {
+    const ops = [];
+    for (const [key, value] of Object.entries(data)) {
+      ops.push({
+        op: "set",
+        field: key,
+        value,
+      });
+    }
     const res = await fetch(
       `${this.protocolUrl}/api/v1/integrations/${integrationId}/data-points`,
       {
@@ -86,28 +144,39 @@ export class Syncer {
             identity_type: identityType,
           },
           integration_id: integrationId,
-          ops: [
-            {
-              op: "set",
-              field: "error_type",
-              value: error.type,
-            },
-            {
-              op: "set",
-              field: "error_message",
-              value: error.msg,
-            },
-          ],
+          ops,
         }),
       },
     );
 
     if (res.status >= 400) {
-      console.log(
-        "updateDataPointWithError error",
-        res.status,
-        await res.text(),
+      throw new Error(
+        "Failed to update data point: " + res.status + " " + (await res.text()),
       );
+    }
+  }
+
+  private async updateDataPointWithError(
+    integrationId: string,
+    configurationId: string,
+    identityType: string,
+    accountId: string,
+    error: DataPointError,
+  ) {
+    const data = {
+      error_type: error.type,
+      error_message: error.msg,
+    };
+    try {
+      this.updateDataPoint(
+        integrationId,
+        configurationId,
+        identityType,
+        accountId,
+        data,
+      );
+    } catch (e) {
+      console.log("Failed to update data point with error", e);
     }
   }
 }
@@ -119,4 +188,8 @@ export type SyncerParams = {
   protocolWsUrl?: string;
   protocolUrl?: string;
   protocolAdminKey: string;
+  redisClient?: ReturnType<typeof createClient>;
+  cachePrefix?: string;
 };
+
+export type Data = Record<string, any>;
