@@ -209,7 +209,7 @@ function parseGroupAccessEvent(msg: GroupAccessEventRaw): GroupAccessEvent {
       ruleAccesses: msg.data.rule_accesses?.map((ra) => ({
         ruleAccess: ra.rule_access,
         ruleId: ra.rule_id,
-        dataPoints: ra.data_points.map((dp) => parseDataPoint(dp)),
+        dataPoints: ra.data_points?.map((dp) => parseDataPoint(dp)),
       })),
       error: msg.data.error,
     },
