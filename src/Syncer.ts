@@ -201,10 +201,14 @@ export class Syncer {
   }
 }
 
+export type DataPointHandler = (
+  data: DataPointEventWithMethods,
+) => Promise<void>;
+
 export type SyncerParams = {
   subscriptionID: string;
   subscriptionKey: string;
-  dataPointHandler: (data: DataPointEventWithMethods) => Promise<void>;
+  dataPointHandler: DataPointHandler;
   protocolWsUrl?: string;
   protocolUrl?: string;
   protocolAdminKey: string;
