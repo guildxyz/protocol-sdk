@@ -1,5 +1,5 @@
 export { EventsClient, EventsClientParams } from "./EventsClient";
-export { Syncer, SyncerParams } from "./Syncer";
+export { Syncer, SyncerParams, DataPointHandler } from "./Syncer";
 export { DataPointError } from "./DataPointError";
 export {
   DataPoint,

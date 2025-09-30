@@ -55,8 +55,8 @@ type GroupAccessEventRaw = {
       data_points: DataPointRaw[];
     }[];
     error?: {
-      message: string
-    }
+      message: string;
+    };
   };
 };
 
@@ -84,6 +84,15 @@ export type DataPointEvent = {
   data: DataPoint;
 };
 
+export type Data = Record<string, any>;
+
+export type DataPointEventWithMethods = DataPointEvent & {
+  getConfiguration: <ConfigurationData>() => Promise<
+    Configuration<ConfigurationData>
+  >;
+  updateDataPoint: (data: Data) => Promise<void>;
+};
+
 export type GroupAccessEvent = {
   kind: "group_access_update";
   priority: 1 | 2;
@@ -103,8 +112,8 @@ export type GroupAccessEvent = {
       dataPoints: DataPoint[];
     }[];
     error?: {
-      message: string
-    }
+      message: string;
+    };
   };
 };
 
@@ -202,7 +211,7 @@ function parseGroupAccessEvent(msg: GroupAccessEventRaw): GroupAccessEvent {
         ruleId: ra.rule_id,
         dataPoints: ra.data_points?.map((dp) => parseDataPoint(dp)),
       })),
-      error: msg.data.error
+      error: msg.data.error,
     },
   };
 }
@@ -228,3 +237,10 @@ export function clientToServerMsgToRaw(
     delay_ms: msg.delayMs,
   };
 }
+
+export type Configuration<Data> = {
+  id: string;
+  integrationId: string;
+  data: Data;
+  createdAt: Date;
+};

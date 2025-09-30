@@ -1,11 +1,19 @@
 import { Syncer } from "../src/Syncer";
 
+type MyConfiguration = {
+  lobby: string;
+};
+
 const syncer = new Syncer({
   protocolWsUrl: "ws://localhost:8081/api/v1/events/ws",
   subscriptionID: "test",
   subscriptionKey: "test",
   dataPointHandler: async (msg) => {
+    // get and use configuration to evaluate data point
+    const config = await msg.getConfiguration<MyConfiguration>();
+
     // update the data point
+    await msg.updateDataPoint({ value: 5 });
     // throw DataPointError if something goes wrong
   },
   protocolUrl: "http://localhost:8080",
