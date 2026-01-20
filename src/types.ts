@@ -46,6 +46,7 @@ type GroupAccessEventRaw = {
       user_id: string;
       group_id: string;
       has_access: boolean;
+      access_changed?: boolean;
       created_at: Date;
       updated_at: Date;
     };
@@ -103,6 +104,7 @@ export type GroupAccessEvent = {
       userId: string;
       groupId: string;
       hasAccess: boolean;
+      accessChanged?: boolean;
       createdAt: Date;
       updatedAt: Date;
     };
@@ -203,6 +205,7 @@ function parseGroupAccessEvent(msg: GroupAccessEventRaw): GroupAccessEvent {
         userId: msg.data.group_access.user_id,
         groupId: msg.data.group_access.group_id,
         hasAccess: msg.data.group_access.has_access,
+        accessChanged: msg.data.group_access.access_changed,
         createdAt: msg.data.group_access.created_at,
         updatedAt: msg.data.group_access.updated_at,
       },
